@@ -1,0 +1,332 @@
+001 kurento说明
+    kurento是webrtc媒体服务和一些client api
+    这些api可以用于开发丰富的视频程序,web的 智能手机的
+    
+    主要功能包括了:
+        多人聊天
+        转码
+        录制
+        混流
+        广播
+        视音频路由
+
+002 文档分以下几部分
+    使用文档
+    特征文档
+    项目文档
+    业务文档
+    开发文档
+    其他知识
+    
+003  kurento和webrtc说明
+    webrtc是一系列协议/机制/api的集合,给浏览器和手机app提供了一个基于p2p的实时通讯
+    kms是基于GStreamer多媒体库的上层应用
+    
+004 开始使用kurento之前,需要了解的东西
+    第一 了解使用场景
+        是选择kurento还是openvidu
+        kms设计之初,其目的是做一个通用平台,支持创建各种多媒体流的app
+        kms非常强大,不可避免,对kms开发者来说就是非常非常复杂
+        webrtc这个标准里有很多部分,你需要知道各个组件之间是怎么工作的,是怎么达到目的的
+        
+        如果你的场景需要针对不同的数据源,那么kurento是一个好的选择
+        如果场景简单,openvidu是基于kurento的,那么openvidu会节省很多时间
+        
+    第二 安装kms
+    第三 配置kms
+    第四 写一个app
+    第五 help
+    第六 enjoy
+
+005 安装kms
+    有两种常用方式:本地安装;亚马逊云安装 下面只写本地安装
+    
+    ubuntu14  DISTRO="trusty"
+    ubuntu16  DISTRO="xenial"
+    
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 5AFA7A83
+    sudo tee "/etc/apt/sources.list.d/kurento.list" >/dev/null <<EOF
+    # Kurento Media Server - Release packages
+    deb [arch=amd64] http://ubuntu.openvidu.io/6.7.1 $DISTRO kms6
+    EOF
+    
+    sudo apt-get update
+    sudo apt-get install kurento-media-server
+    这是6.7版本安装过程 和6.6.2还是有些不同的
+    
+    sudo service kurento-media-server start
+    sudo service kurento-media-server stop
+
+    测试kms的运行状态
+        进程 ps -ef | grep kurento-media-server
+        端口 sudo netstat -tupan | grep kurento
+        
+    下面是安装coturn
+        ubuntu16可以直接安装 sudo apt-get install coturn
+        增加一个访问用户 sudo turnadmin -a -u yb -p 1 -r kurento.org
+        计算yb用户的加密之后的字符串标识  sudo turnadmin -k -u yb -p 1 -r kurento.org
+        得到字符串为 0x0b20b9e0a71d037530c35850514a3d81
+        
+        修改coturn配置: /etc/turnserver.conf
+            ip: relay-ip external-ip
+            webrtc: fingerprint lt-cred-mech realm=kurento.org
+            turn用户: user=yb:1
+            日志: no-stdout-log
+        修改turn服务的自启动: /etc/default/coturn
+            TURNSERVER_ENABLED=1
+
+    修改kms中的turn配置: /etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
+        turnURL=yb:1@172.168.10.106:3478
+        
+    git下载例子
+    安装nodejs npm:
+        curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+        sudo apt-get install nodejs
+        nodejs -v
+        npm -v
+        sudo npm install -g bower
+        
+    kms的日志在/var/log/kurento-media-server下面
+    coturn的日志在/var/log/下面
+    
+
+006 配置js运行环境
+    安装http服务 sudo npm install http-server -g
+    第一个js例子,未使用https 修改了index.js中的wws为ws 端口修改为kms的8888
+    启动命令是http-server -p 8443
+    
+    从web页面看 web页面是一个web app 同时也是kurento client
+    因为这个例子功能比较单一,逻辑简单,所以web app 和 client合成一个了
+    
+    js 逻辑:
+        这是一个典型的spa架构 (single page application 单页应用)
+        界面是index.html
+        jquery 是用来简化js操作,解决各浏览器兼容问题的
+        bootstrap 是一个UI框架
+        demo-console 估计是在控制台打印消息的
+        ekko-lightbox 是基于bootstrap的lightbox图片画廊插件
+        adapter 是webrtc项目中的,用于不同浏览器webrtc实现的粘合剂
+        
+        kurento的js有:
+            kurento-client : js client工具包, 实现了js client
+            kurento-utils : web端的工具包
+
+        index.html 是展示 js/index.js是逻辑
+        开始逻辑:
+            var startButton = document.getElementById("start");
+
+            startButton.addEventListener("click", function() {
+               var options = {
+                 localVideo: videoInput,
+                 remoteVideo: videoOutput
+               };
+
+               webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
+                  if(error) return onError(error)
+                  this.generateOffer(onOffer)
+               });
+
+               [...]
+            }
+            在kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv执行时,隐藏了webrtc内部细节
+                这个步骤主要是创建PeerConnection对象,并调用getUserStream,让用户选设备
+            当前的操作执行完之后,在回调中执行this.generateOffer(onOffer)
+                这个步骤主要是产生一个sdp offer, 回调函数onOffer就负责发送
+            在onOffer回调中创建一个kurento client对象
+                通过这个对象操作kms,创建管道和媒体元素
+                设置ice候选回调
+                发送sdp offer
+                收集ice候选
+                WebRtcEndpoint连接自己
+            发送sdp offer之后 设置sdp answer回调处理
+            连接自己的回调
+            
+007  配置java环境
+    安装jdk和mvn
+        sudo apt-get install maven
+        sudo apt-get install openjdk-8-jdk openjdk-8-jre
+    配置环境变量
+        export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+        export JRE_HOME=${JAVA_HOME}/jre
+        export CLASSPATH=.:$CLASSPATH:$JAVA_HOME/lib:$JRE_HOME/lib  
+        export PATH=${PATH}:${JAVA_HOME}/bin:$JRE_HOME/bin
+        将这些丢到/etc/profile中  再在.zshrc中加入 source /etc/profile
+        或是直接在.zshrc中加入上面几条
+        如果是其他sh,eg:bash, 就在.bashrc中处理  或者每开一次终端手动输入source 命令
+        
+    额外话题:
+        maven的本地仓库目录:
+            mvn -v 找到mvn的目录 
+            在conf目录下找到settings.xml配置
+            在配置中找到localRepository项, 就找到了仓库目录
+            默认是~/.m2
+            
+    第一个例子: 回放推出去的流
+        和上面对的js版本有点不同的是:
+            这里web app和kurento client是分开的
+            那么控制kms的部分应该在client
+        这是一个典型的三层架构:
+            web app提供界面展示
+            client (web server) 负责逻辑处理
+            kms为client提供服务能力
+        那么需要2个websocket来通讯
+            web app和client, 做信令交互
+            client和kms, 也需要交互, 通过client来控制kms
+            
+007 endpoint的监听事件
+    继承机制
+    MediaObject 包含了错误事件 error
+    MediaElement 包含了媒体元素的事件
+        ElementConnected
+        ElementDisconnected
+        MediaFlowInStateChange
+            State = Flowing:表示有数据进入endpoint,即 sink管脚有收到数据
+            State = NotFlowing:没有收到数据
+        MediaFlowOutStateChange
+            State = Flowing:表示endpoint有数据丢到管道中, 即src管脚有数据输出
+            State = NotFlowing:没有发送数据
+        MediaTranscodingStateChange
+            kms中有些endpoint嵌入了gstreamer,这些endpoint被称为agnosticbin,不可知的可执行?
+            这些endpoint可以无缝和管道里的其他组件集成, 说白了就是转码
+            State = Transcoding:表示会进行转码
+            State = NotTranscoding:表示不会进行转码
+    BaseRtpEndpoint 包含了rtp连接事件
+        ConnectionStateChanged
+            State = Connected:表示KmsIRtpConnection 都已创建
+            State = Disconnected:表示KmsIRtpConnection 没有都创建
+        MediaStateChanged
+            State = Connected: 音视频至少有一路还是alive
+            State = Disconnected:rtp流会话已终结
+    WebRtcEndpoint 包含了ice候选事件,用libnice实现
+        DataChannelClose
+        DataChannelOpen
+        IceCandidateFound ice候选处理程序开始后,发现了一个新的本地候选
+        IceComponentStateChange
+            State = Disconnected: 没有active连接, 候选处理程序已停止
+            State = Gathering: 开始收集本地ice候选
+            State = Connecting: 开始进行连接检测
+            State = Connected: 已有一对候选配对成功
+            State = Ready: 所有本地候选都被收集, 连接测试已完成, 至少有一对连接成功
+            State = Failed: 所有本地候选都被收集, 连接测试已完成, 没有一对连接成功
+        IceGatheringDone
+            本地和远端的候选都已收集完,测试完
+        NewCandidatePairSelected
+            当新测试成功的匹配对的权重比之前成功的还高
+            选择权重高的
+            
+    WebRtcEndpoint事件的一个简单序列
+        当sdp offer/answer完成之后, WebRtcEndpoint就开始收集ice候选
+        事件IceCandidateFound 找本地候选
+        事件IceComponentStateChanged - 收集阶段 找到更多的本地候选, 此时等待随时到来的远端ice候选
+        函数AddIceCandidate 远端ice候选到达
+        事件IceComponentStateChanged - 连接测试阶段 第一个远端候选到达,就开始测试
+        函数AddIceCandidate 远端继续发送ice候选
+        事件IceCandidateFound 找到更多本地候选
+        NewCandidatePairSelected 发现第一对测试成功的匹配对
+        IceComponentStateChanged - 已连接阶段 至少一对测试成功,继续测试其他匹配对 此时已经可以传媒体数据了
+        NewCandidatePairSelected 发现更高权重的匹配对
+        IceGatheringDone 所有的匹配对都已测试完
+        IceComponentStateChanged - 完成阶段 ice候选整个过程已经完成, 所有组件状态已更新
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

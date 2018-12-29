@@ -1,0 +1,151 @@
+001 架构
+    和大多数多媒体交互技术一样，架构分两层，或者理解为两块
+    信令和媒体
+    
+    信令层负责交互管理
+        媒体协商，qos参数化，调用建立，用户注册，用户出席等
+    媒体层负责媒体处理
+        媒体传输，编解码，处理
+        
+    一个完整最小集应该包含3块(理想的web js直连kms暂不纳入考虑)
+        浏览器/app：前端展示部分，是app client
+        app server：处理所有的信令交互，是kurento的client，同时也是前端的server
+        kms：处理媒体部分，kurento的server
+        
+    app server说明：
+        和前端的交互主要是信令交互
+        和kms的交互是通过kurento protocol实现的
+        主要功能是：
+            负责信令层的功能
+            系统的业务逻辑
+            已部署媒体程序的连接
+
+        可以由java、nodejs、php、ruby、.net、c++实现，前提是遵守kurento protocol
+        可以使用一些成熟技术：http、sip servlets、web services、db连接、消息服务等
+        app server可使用的技术非常多，所以信令可以走sip、restful、http格式、soap、rmi等等
+        这些信令通过命令来创建一个媒体会话，并协商他们各自的特征
+        这里协商的主要是媒体格式
+        所以app server设计的目标是简单和灵活
+        
+    kms说明：
+        媒体处理，负责更低层次的媒体操作：
+            传输，编解码，转码，混流，流处理
+        kms的设计目标是尽量少的延时，尽量多的吞吐量
+            换句话说就是更高的性能
+    
+002 api和接口
+    媒体层(kurento media server)和信令层(app server)暴露了一些抽象的接口
+    不同的api按角色作用可分为以下几类：
+        kurento protocol：kms通过websocket暴露的一个网络协议，
+        kurento api：kurento protocol面向对象的视图
+                    创建和管理媒体元素和管道
+                    访问api可以通过计算机语言或是kurento protocol实现的框架
+        kurento java client：java se层的api，调用kurento api并提供一些功能来访问媒体元素和管道
+                    是控制媒体层的api，不提供信令能力
+        kurento js client：和上面的java client类似，她给js开发者提供了控制媒体层的能力
+                    可以通过js client api直接创建node.js/浏览器app
+    现在控制媒体层的api只有java和js，将来会提供python和c++ php的api
+
+    目前看来，开发人员可以通过kurento client/kurento api直接创建多媒体程序
+    她有很多潜在的应用场景：
+        web app：使用kurento js client
+        桌面app：使用kurento java client
+        分布式app：使用kurento protocol
+        
+003 模块
+    kurento被设计成插件式框架
+    kms默认使用了以下模块
+        kms-core
+        kms-elements
+        kms-filters
+    也可以使用内置模块来扩展能力
+        kms-crowddetector
+        kms-pointerdetector
+        kms-chroma
+        kms-platedetector
+    也可以使用自定义的模块来扩展kms
+    
+004 通过kurento创建app
+    针对web app：
+        分3层：呈现层，逻辑层，服务层
+        
+        呈现层：client side
+            主要是跟用户做交互，包括采集和综合性展示，这些一般在html页面实现
+        逻辑层：server side
+            这层主要实现app要执行的功能
+        服务层：server or internet side
+            为逻辑层提供一些能力，包括访问db，交互，安全等
+            
+    针对使用kurento的媒体app：
+        呈现层：
+            负责多媒体的展现和捕获
+        逻辑层：
+            提供制定的媒体逻辑(负责构建合适的管道)
+        服务层：
+            给逻辑层提供服务：媒体录制、媒体加密。kms就是负责这层的
+
+    一个是普通的web程序，一个是kurento程序，结构层次还是蛮类似的
+    对于web app有这么一个特性：逻辑层可以合在呈现，也可以合在服务层
+    kurento app也是一样的。可以把管道的创建放在呈现层或是服务层。
+    值得注意的是，在web app中，呈现越简单越好，逻辑合在服务层最好；
+    在kurento app中也是这样的。
+    
+005 client server kurento的交互
+    像上面说的，kurento的app包含了3部分：
+        client app：可以调用多媒体能力，或加上逻辑部分(js api)
+        app server：逻辑
+        kms：接受命令，并创建媒体能力(管道)
+        
+    主要分两个阶段：
+        媒体协商阶段
+        媒体交换阶段
+        
+        媒体协商阶段：
+            client发送请求给server
+            server处理逻辑
+            server把命令请求丢给kms
+            kms创建管道
+            kms把信息丢给server
+            server回一个answer给client
+        媒体交换阶段
+            主要是媒体数据交换
+            由client和kms直接交换媒体数据
+    
+    媒体协商阶段深入：
+        client发送一个请求给server，请求一些媒体能力
+        这是信令交互，可以走http，websockets，sip等
+        server收到请求后，可能会执行一些逻辑，包括：认证 授权 记账 cdr生产 调用web服务等
+        server根据指令，让kms建立合适的管道
+        一旦kms建立管道成功，就会响应server，server会告诉client一些信息，包括kms的访问信息
+        
+        这整个过程，就是信令过程
+        
+    媒体交换阶段深入：
+        利用协商得到的kms的ip和端口，client会发送一个GET请求，kms会做相应的响应
+        
+006 带kurento的实时webrtc程序
+    kurento中可以建立一个实时多媒体会话，浏览器和kms直接通过webrtc实现的会话
+    此时kms可以理解为一个媒体代理
+    
+    因为webrtc使用sdp来做信令交互，下面看看webrtc流的协商阶段：
+        client发送一个sdp请求给server，sdp(session description protocol)
+        这个sdp包含了client的媒体能力
+        server会尽可能实例化一个webrtc endpoint，返回一个包含自己能力的sdp响应
+        server会把answer sdp丢给client，之后就是媒体数据交换
+        
+        endpoint的实例化在管道建立中，这块实际上是在kms中处理的，有server控制着
+        
+007 kurento 设计原则
+    媒体层和信令层分开
+    媒体和server分布式     单独配置部署，一个信令server可连接多个kms，或者多个信令server一个kms
+    适合云平台             kurento可作为paas(platform as a service)集成到云平台中
+    媒体管道               支持复杂的媒体处理
+    程序部署               无需关注kms内部的复杂处理，部署简单统一
+    端到端的交流能力       提供端到端的交互能力，开发无需关注复杂的传输，编解码，录制等
+    媒体流处理能力         人和人交互，人和机器(实时流点播),机器到机器(录制)
+    媒体的模块化处理       管道里的媒体元素定义了一种处理能力
+    审查处理               kurento提供了丰富的qos监控、计费和审计功能
+    无缝ims一体化          无缝对接电话运营商的3g多媒体系统
+    透明的媒体自适应层     提供一个透明的媒体自适应层，不同设备，不同分辨率，屏幕大小，耗电，传输率
+    
+    

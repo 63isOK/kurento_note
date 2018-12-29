@@ -1,0 +1,37 @@
+001 coturn的安装
+    https://packages.debian.org/jessie-backports/amd64/coturn/download
+    在上面的网站选一个镜像，下载coturn_xxx_amd64.deb
+    
+    sudo apt-get update
+    sudo apt-get install gdebi-core
+    sudo gdebi coturn*.deb
+    安装coturn和她的依赖
+    
+    配置/etc/turnserver.conf
+        relay-ip
+        external-ip
+        fingerprint
+        lt-cred-mech
+        realm=kurento.org
+        user=kurento:kurentopw 这个kurentopw可以填写0xxxxx
+        no-stdout-log
+        
+    其中coturn的用户是通过下面的命令得到的
+        sudo turnadmin -a -u kurento -p kurento -r kurento.org
+        turnadmin -k -u kurento -p kurento -r kurento.org
+    
+    配置/etc/default/coturn
+        TURNSERVER_ENABLED=1  这个的意思是让turn服务作为系统服务跑
+    
+    service coturn start 启动coturn
+    service coturn status 查看coturn服务状态
+    浏览器输入ip:3478 查看coturn的当前状态
+        TURN Server 
+        use https connection for the admin session
+    
+    配置/etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
+    
+    
+002 测试
+    turnutils_uclient -v -t -T -u kurento -w kurento 172.168.10.101
+    

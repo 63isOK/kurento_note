@@ -1,0 +1,139 @@
+001 安装说明
+    kms现在显示支持两种长期支持版本lts的ubuntu
+    Ubuntu14.04 (Trusty) and Ubuntu 16.04 (Xenial)
+    还有一点只支持64位的
+    ➜  dev uname -a
+    Linux server 4.4.0-31-generic #50~14.04.1-Ubuntu SMP Wed Jul 13 01:07:32 UTC 2016 x86_64 x86_64 x86_64 GNU/Linux
+    
+    ➜  dev lsb_release -a
+    No LSB modules are available.
+    Distributor ID: Ubuntu
+    Description:    Ubuntu 14.04.5 LTS
+    Release:        14.04
+    Codename:       trusty
+    
+    现在kms主要战地在16.04，但所有的代码都在14.04上测试过
+    
+    kms有4个主要的版本：
+        Trusty - release
+        Trusty - development
+        Xenial - release
+        Xenial - development
+        release用于生产环境
+        development用于开发环境
+        
+    echo "deb http://ubuntu.kurento.org trusty kms6" | sudo tee /etc/apt/sources.list.d/kurento.list
+    wget http://ubuntu.kurento.org/kurento.gpg.key -O - | sudo apt-key add -
+    sudo apt-get update
+    sudo apt-get install kurento-media-server-6.0
+    这几条命令就是安装kms的
+    
+    sudo service kurento-media-server-6.0 start
+    sudo service kurento-media-server-6.0 stop
+    这两条就是启动和停止命令
+    
+002 nat穿透
+    只要某个终端在nat后面，那么就需要穿透 stun/turn
+    为了启动stun服务，需要修改kms的配置文件
+        /etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
+        stunServerAddress=<serverIpAddress>
+        stunServerPort=<serverPort>
+        注意：这个配置文件以;开始注释，配置项中不能出现;
+        另一点是支持ip，不支持域名
+        
+        turn配置也在这个文件里
+        也可以使用免费的穿透服务http://numb.viagenie.ca/
+        
+        stun服务有很多免费的，其提供的功能很有限，花费不大，所以多
+        turn就不一样，他作为终端的代理，花费很大，很难找到免费好用的服务
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+    

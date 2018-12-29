@@ -1,0 +1,22 @@
+001 说明
+    kurento用的最多场景是 多方组聊,就是多对对的聊天
+    基于kms, kurento开发组提供了一套基于组(房间)的api
+    
+    room sdk: java, 实现服务端的多房间管理
+    扩展包: 实现 java server app (kurento client); room js client; room android/java web app
+    
+    使用room sdk的好处:
+        管理一个房间的多媒体会议的生命周期
+        访问与会者的典型操作: 加入; 退出; 发布流; 接收流
+        简单的信令, 媒体初始化和协商参数需要由客户端来触发或传递
+        隐藏了媒体和服务拓扑
+    扩展包说明:
+        room server基于room sdk实现,使用sping boot/json-rpc基于websocket
+        是一个非常成熟的房间服务,可以很容易与spring boot程序交互
+        java client 没有媒体处理,只是定义了和room server的通信协议
+        js client支持浏览器的媒体初始化和协商
+        
+    好吧,如果使用room sdk, 那么kms的管道/媒体元素什么的都不需要修改
+        如果要加媒体处理逻辑,就需要修改源码,重新编译
+        
+        

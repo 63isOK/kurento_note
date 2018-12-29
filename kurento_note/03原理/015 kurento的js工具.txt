@@ -1,0 +1,171 @@
+001 概览
+    kurento的工具被封装成一个RTCPeerConnection对象,用于开发基于webrtc的程序
+    大体是要导入这么一个文件 kurento-utils
+    这是一个js文件,用在web页面
+    
+    
+002 例子
+    在kurento-tuils.js中有个WebRtcPeer对象,她提供了RTCPeerConnection api
+    peer连接有两种方式:单工或双工
+    下面的例子现在了如何去创建一个双工的对象,用于接收和发送音视频流
+    
+     var videoInput = document.getElementById('videoInput');
+     var videoOutput = document.getElementById('videoOutput');
+
+     var constraints = {
+         audio: true,
+         video: {
+           width: 640,
+           framerate: 15
+         }
+     };
+
+     var options = {
+       localVideo: videoInput,
+       remoteVideo: videoOutput,
+       onicecandidate : onIceCandidate,
+       mediaConstraints: constraints
+     };
+
+    var webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
+          if(error) return onError(error)
+
+          this.generateOffer(onOffer)
+       });
+    使用kurento-utils的WebRtcPeer对象,利用构造函数的传入的不同参数来做不同处理
+    上面的代码创建了一个RTCPeerConnection对象,视浏览器需求还可以调用getUserMedia
+    上面的constraints属性在调用时被使用,上面就是使用了音视频
+    
+    kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv就是创建一个RTCPeerConnection
+    之后在回调中处理offer,处理过程是调用 generateOffer 生成之后调用onOffer回调
+    在onOffer回调中发送sdp offer给对端
+    
+    这块涉及信令和业务逻辑
+    
+    sdp offer发送给对端, 对端会回发一个sdp answer. 
+    function onOffer(error, sdpOffer)
+    {
+     if(error) return onError(error)
+
+     kurentoClient(args.ws_uri, function(error, client)
+     {
+       if(error) return onError(error);
+
+       client.create("MediaPipeline", function(error, _pipeline)
+       {
+         if(error) return onError(error);
+
+         pipeline = _pipeline;
+
+         pipeline.create("WebRtcEndpoint", function(error, webRtc){
+           if(error) return onError(error);
+
+           setIceCandidateCallbacks(webRtcPeer, webRtc, onError)
+
+           webRtc.processOffer(sdpOffer, function(error, sdpAnswer){
+             if(error) return onError(error);
+
+             webRtcPeer.processAnswer(sdpAnswer, onError);
+           });
+           webRtc.gatherCandidates(onError);
+
+           webRtc.connect(webRtc, function(error){
+             if(error) return onError(error);
+
+             console.log("Loopback established");
+           });
+         });
+       });
+     });
+    }
+    可以看到发送完sdp offer之后,就是创建管道,创建WebRtcEndpoint
+    之后是webRtc.processOffer 她的回调是处理sdp answer 
+    webRtcPeer.processAnswer(sdpAnswer, onError);
+    
+    先看看发送sdp offer之前,创建媒体元素之后对ice的处理:
+    setIceCandidateCallbacks(webRtcPeer, webRtc, onError)
+    
+    上面那些实现了以下几点:
+        发送sdp offer
+        接收sdp answer 并处理
+        交换ice候选
+    
+    这是一个协商过程,是一个全双工的例子
+    
+003 使用数据通道
+    webrtc的数据通道,可以让我们基于webrtc连接发送文字或二进制数据
+    WebRtcPeer 里面有个对象叫RTCPeerConnection 
+    RTCPeerConnection 有个功能是 RTCDataChannel 
+    RTCDataChannel 可以发送文字或二进制
+    
+    要使用数据通道,就在WebRtcPeer构造中的配置中修改,就是option对象
+    具体看文档和例子
+    
+004 参考文档
+    WebRtcPeer:
+        WebRtcPeer(mode, options, callback) 构造函数
+            mode: recv,send,sendRecv
+                分别是单工收;单工发;全双工收发
+            options:一系列参数
+                localVideo:本地视频流的tag
+                remoteVideo:远端视频流的tag
+                videoStream:提供一个可使用的视频流,而不是本地摄像头媒体流
+                audioStreams:提供一个可使用的音频流,而不是本地麦克风媒体流
+                mediaConstraints:定义音视频属性, 宽高,是否是纯音频或纯视频 等
+                connectionConstraints:定义浏览器相关的一些约定, ipv6 安全 等
+                peerConnection:使用一个已创建的peerConnection 
+                sendSource:数据源 摄像头/屏幕/窗口
+                onstreamended:捕获到流结束事件时调用这个方法
+                onicecandidate:捕获ice候选事件时调用这个方法
+                oncandidategatheringdone:所有候选都确定了调用这个方法
+                dataChannels:启动数据通道的标识 true标识开启
+                dataChannelConfig:json格式的配置,创建通道对象时用到这个配置
+                    配置内容: id: 通道id,如未指定就使用WebRtcPeer对象的id
+                              options:options对象,数据通道对象构造时用到
+                              onopen:被数据通道对象的onopen事件调用,通道打开时触发
+                              onclose:被数据通道对象的onclose事件调用,通道关闭时触发
+                              onmessage:被数据通道对象的onmessage事件调用,接收消息时触发
+                              onbufferredamountlow:收到bufferedamountlow事件时调用这个方法处理
+                              onerror:数据通道中出现错误时调用
+                simulcast:联播标识
+                configuration:json格式,使用ice server时
+                    配置内容: iceServers
+            callback:回调
+            
+        除了这种构造方式,还有三种对应方式,不过是将mode提取出来了:
+        WebRtcPeerRecvonly(options, callback): Create a WebRtcPeer as receive only.
+        WebRtcPeerSendonly(options, callback): Create a WebRtcPeer as send only.
+        WebRtcPeerSendrecv(options, callback): Create a WebRtcPeer as send and receive.
+    
+    MediaConstraints:
+        媒体约束,提供给一个控制手段,来影响数据源的一些操作
+        getUserMedia会选择一个合适的数据源,并配置
+        默认媒体约束是未定义的,调用getUserMedia时会使用到媒体约束
+        媒体约束类似于:
+        {
+          audio: true,
+          video: {
+            width: 640,
+            framerate: 15
+          }
+        }
+        
+    WebRtcPeer的方法:
+        getPeerConnection:获取peerConnection,可以直接用
+        showLocalVideo:显示本地视频
+        getLocalStream:获取本地流,可以通过muted静音属性来控制声音
+        getRemoteStream:获取远端流
+        getCurrentFrame:获取当前帧,且可以获取一个canvas对象,对象里是当前帧图像
+        processAnswer:sdp answer收到之后的回调函数
+        processOffer:sdp offer收到之后的回调
+        dispose:用于释放WebRtccPeer资源
+        addIceCandidate:收到ice候选时调用
+        getLocalSessionDescriptor:获取peerconnection的本地会话描述对象
+        getRemoteSessionDescriptor:获取peerconnection的远端会话描述对象
+        generateOffer:创建一个offer
+        
+    屏幕共享和窗口共享
+        一个私有模块kurento-browser-extensions提供的功能
+        需要手动安装这个包,并设置sendSource是窗口还是屏幕
+        共享失败会报异常
+        

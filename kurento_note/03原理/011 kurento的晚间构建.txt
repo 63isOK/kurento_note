@@ -1,0 +1,11 @@
+001 每日构建
+    kurento分几个不同的组件,每个组件都用不同的技术来实现
+    
+    kms:核心组件,c/c++开发,gstreamer框架
+    java client: java开发, Maven 和Spring框架
+    js client: js开发, node.js 和npm
+    
+    对于使用kurento的人来说,每日构建没必要;如果是体验新功能,就可以从源码进行编译
+    
+    具体的源码编译, 可查看官网文档
+    

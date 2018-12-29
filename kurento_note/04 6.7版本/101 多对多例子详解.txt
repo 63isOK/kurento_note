@@ -1,0 +1,18 @@
+001 说明
+    多房间,每个房间的人都是发一路,收其他人的流
+    房间里一个人需要用到n个webrtc endpoint来处理数据 (1个是发  n-1是收)
+    管道里需要的webrtc endpoint就是 n*n
+    
+    这里随着成员的进入和退出, 管道也会相应的做修改
+    
+002 web app 的消息处理
+    existingParticipants:
+    newParticipantArrived:
+    participantLeft:
+    receiveVideoAnswer:
+    iceCandidate:
+    
+    
+    
+003 服务端的消息处理
+    joinRoom:

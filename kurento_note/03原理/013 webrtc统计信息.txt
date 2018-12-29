@@ -1,0 +1,66 @@
+001 说明
+    webrtc流可能会有丢失,包括视频/音频/数据,就会有不同的延时
+    为了监控webrtc程序的性能,那么程序需要提供网络底层和管道的监控能力
+    kurento提供了从kms捕获webrtc统计信息的能力,实现了w3c指定的webetc协议的统计api
+    kms中提供的统计信息分两类:
+        inboundrtp: kms收到的流统计信息
+        outboundrtp: kms发出的流的统计信息
+
+002 api描述
+    webrtc的信息统计能力由kms提供, 由client来获取
+    client要获取统计信息,分两步:
+        第一 告诉kms,让管道对象打开统计功能
+        第二 从媒体元素中读取统计信息
+    
+    让管道对象打开统计功能,是通过setLatencyStats方法来实现
+        java client:
+            String kmsWsUri = "ws://localhost:8888/kurento";
+            KurentoClient kurentoClient = KurentoClient.create(kmsWsUri);
+            MediaPipeline mediaPipeline = kurentoClient.createMediaPipeline();
+            mediaPipeline.setLatencyStats(true);
+        js client:
+            var kmsWsUri = "ws://localhost:8888/kurento";
+            kurentoClient(kmsWsUri, function(error, kurentoClient) {
+               kurentoClient.create("MediaPipeline", function(error, mediaPipeline) {
+                  mediaPipeline.setLatencyStats(true, function(error){
+
+                     // ...
+
+                  });
+               });
+            });
+    从媒体元素中读取统计信息,是通过调用媒体元素的getStats来实现
+        java client 读WebRtcEndpoint的统计信息:
+            WebRtcEndpoint webRtcEndpoint = new WebRtcEndpoint.Builder(mediaPipeline).build();
+            MediaType mediaType = ... // it can be MediaType.VIDEO, MediaType.AUDIO, or MediaType.DATA
+            Map<String, Stats> statsMap = webRtcEndpoint.getStats(mediaType);
+        js client 读WebRtcEndpoint的统计信息:
+            mediaPipeline.create("WebRtcEndpoint", function(error, webRtcEndpoint) {
+               var mediaType = ... // it can be 'VIDEO', 'AUDIO', or 'DATA'
+               webRtcEndpoint.getStats(mediaType, function(error, statsMap) {
+
+                  // ...
+
+               });
+            });
+            
+    读出来的是一个map,里面一条就是一个键值对,影响里面值的因素很多,最主要的是网络和kms负载情况
+    完整的统计信息可以查看idl,下面罗列了常用的统计信息:
+        ssrc: 同步源
+        firCount: 统计接收者发到发送者的fir包数量, fir 是full intra request, 针对视频有效
+        pliCount: 统计接收者发到发送者的pli包数量, pli 是packet loss indication  丢包率
+        nackCount: 统计接收者发到发送者的nack包数量, Negative ACKnowledgement, 丢包重传
+        sliCount: 统计接收者发到发送者的sli包数量,  Slice Loss Indication 切片丢失率, 针对视频有效
+        remb: 接收方最大码率估计, 针对视频有效
+        packetsLost: ssrc的rtp包丢失数量
+        packetsReceived: 接收的rtp包数量
+        jitter: 每秒抖动测量
+        packetsSent: ssrcc发送的rtp包数量
+        bytesSent: ssrcc发送的总字节数
+        targetBitrate: ssrc目前配置的码率, 单位是bit/s
+        roundTripTime: 根据rtcp的时间戳,估算到ssrc的往返时间
+        audioE2ELatency: 端到端的音频延时, 单位ns
+        videoE2ELatency: 端到端的视频延时, 单位ns
+        
+        
+        

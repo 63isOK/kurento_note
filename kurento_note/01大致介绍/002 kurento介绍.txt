@@ -1,0 +1,55 @@
+001 webrtc媒体服务
+    webrtc提供了两套api ：web api/ c++ api
+    web api让浏览器实现了RTC (Real-Time Communications)
+    webrtc的理想场景就是两个终端用户，利用p2p直接交流，不需要通过服务器走
+    但是组聊，录制，广播，转码这些功能就不能基于理想场景实现，因为这样，所以很多场景就需要有个中间的媒体服务
+    
+    这个媒体服务就是一个媒体中间件，接收媒体流然后输出不同的媒体流：
+        组聊，媒体服务把一个终端的流分发给其他接收者，这就是mcu
+        混流：将多路流合成一路
+        转码：在两个不相容的端点，对编码和格式进行适配
+        录制：持久化
+        
+002 kurento媒体服务
+    kms是基于插件式的，这些插件可以提供媒体处理功能
+    既然是插件式，那么这些插件可以设置为开启或关闭
+    kms除了提供上面webrtc提到过的，也提供了其他的处理：
+        计算机视觉
+        ar
+        alpha blending(视频的alpha渐变？)
+
+003 kurento 的api/clients/protocol
+    kms暴露api，被client调用
+    现在支持两种client：java/js，如果要扩展也提供了方法：基于kurento协议
+    
+    现在kurento 的client有3中应用场景：
+        支持webrtc的浏览器中使用kurento 的js client
+        javaee应用服务中使用kurento 的java client
+        node.js服务中使用 kurento 的js client
+        
+    api都是继续概念上的 Media元素
+        一个Meida元素表示一种媒体能力
+            WebRtcEndpoint 这种Media元素的能力是收发webrtc媒体流
+            RecorderEndpoint 这种Media元素的能力是收流并写入到文件系统
+            FaceOverlayFilter 这种Media元素的能力是人脸检测并在媒体上加上一些图片
+    理解api可以通过查看文档：
+        kurento-client-java
+        kurento-client-js
+        kurento-utils-js
+        
+004 利用kurento创建程序
+    对于开发者来说Media元素可以形象的理解为拼装玩具
+        按照想要的功能来选择和连接不同的Media元素
+    在kurento中，多个元素组成的graph被称为Media Pipeline (windows上的dshow filter和graph)
+        下面把这些graph称为管道
+        
+    创建一个管道，需要确定两件事：
+        选哪些Media元素 - 对应程序需要提供哪些能力
+        决定拓扑图 - 对应程序的实现逻辑
+    拓扑图显示了元素之间的连接，通过api来进行连接
+        最原始的连接就是在元素对象上操作
+        当前操作元素作为source，sink作为参数 eg：
+        sourceMediaElement.connect(sinkMediaElement)
+        
+    连接，支持多种方式，很灵活
+        

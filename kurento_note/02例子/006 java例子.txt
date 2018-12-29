@@ -1,0 +1,46 @@
+这里全部用java的api来处理一下所有的例子
+
+001 hello world
+    git clone https://github.com/Kurento/kurento-tutorial-java.git
+    cd kurento-tutorial-java/kurento-hello-world
+    git checkout 6.6.2
+    mvn compile exec:java
+    
+    环境搭建：java环境
+        sudo apt-get install maven
+        apt-get install openjdk-7-jdk openjdk-7-doc openjdk-7-jre-lib
+        
+    改为http：
+        还是修改js文件
+        kurento-tutorial-java/kurento-hello-world/src/main/resources/static/js/index.js
+        
+    注：修改为http之后 没跑起来，改为https(就是一点没改)就能跑起来了
+    
+    kurento整个体系中，java api可以控制kms，java api可以用在web服务端/桌面/安卓等
+    
+    这个例子的逻辑如下：
+        把本地流丢给kms，kms原封不动的把流发回来
+        
+    实现过程：
+        在kms中创建一个管道，管道中就一个MediaElement(WebRtcEndpoint)
+        自己把收到的数据再丢出去
+        
+    分析：
+        中间有3块：web app，java，kms
+        web app的逻辑在js中实现
+        java是基于spring-boot框架的服务端app，里面使用了kurento java api
+            java app在此的最大作用是控制kms
+            
+        可以看出java的都是使用三层模式，层与层之间用websocket来通信，那么需要2个websocket
+        {web app}  -- websocket1  --  {java app}  -- websocket2  -- {kms}
+        websocket1用于实现信令协议
+        websocket2是基于kurento 协议，实现的kurento java client控制kms的方式
+        
+        本例中，h5 app的接口中包含两个h5 video标签，一个放本地流一个放远端流
+            流在kms中未做改变。pipeline中包含一个Media elemen即可：WebRtcEndpoint
+            WebRtcEndpoint 可以以全双工的方式交换webrtc流
+            
+        这是一个web app，她符合c/s模式
+            c端，逻辑由js实现
+            s端，以spring-boot框架，利用java api来控制kms，这样提供能力
+            

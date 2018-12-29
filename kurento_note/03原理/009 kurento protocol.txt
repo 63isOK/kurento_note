@@ -1,0 +1,382 @@
+001 说明
+    kms可以被kurento client控制,目前有js/java 两种api
+    控制是通过websocket发送接收json-rpc 2.0格式的数据
+    数据格式被称为kurento protocol
+    
+002 json-rpc 消息格式
+    
+    Request messages 请求消息
+        一个rpc调用表示发送一个请求消息给服务端
+        {
+          "jsonrpc": "2.0",     // json-rpc的版本 必须是2.0
+          "id": 1,              // 客户端创建的唯一标示,可以是数字,可以是字符串. 
+                                //响应时服务器会返回这个值
+          "method": "create",   // 调用的方法
+          "params": {           // 结构体化的参数
+            "type": "PlayerEndpoint",
+            "constructorParams": {
+              "pipeline": "6829986",
+              "uri": "http://host/app/video.mp4"
+            },
+            "sessionId": "c93e5bf0-4fd0-4888-9411-765ff5d89b93"
+          }
+        }
+        
+003 成功响应的消息
+    {
+      "jsonrpc": "2.0",         // json-rpc的版本 必须是2.0
+      "id": 1,                  // 需要和请求的id一致
+      "result": {               // 成功的返回 具体和调用方法有关
+        "value": "442352747",
+        "sessionId": "c93e5bf0-4fd0-4888-9411-765ff5d89b93"
+      }
+    }
+    
+004 出错时的响应消息
+    {
+      "jsonrpc": "2.0",         // json-rpc的版本 必须是2.0
+      "id": 1,                  // 需要和请求的id一致
+      "error": {                // 还可能有个字段是data,服务器定义的值
+        "code": "33",
+        "message": "Invalid paramter format"
+      }
+    }
+    
+005 基于json-rpc的kurento api
+    kurento暴露了一套成熟的api,在client和kms之间需要一套全双工的交互基础
+    这也是kurento protocol选择websocket传输的一点
+    
+    kurento client需要创建一个websocket连接,连到kms,格式是ws://hostname:port/kurento
+    kurento client可以给kms发以下消息:
+        ping: keep-alive 保活
+        create: 实例化一个新的媒体对象: 媒体元素或是管道
+        invoke: 调用已存在媒体对象的方法
+        subscribe: 在媒体对象中订阅一个事件
+        unsubscribe: 去掉某事件的订阅
+        release: 删除一个媒体对象,并释放其中所有的资源
+    kms可以给client发以下消息:
+        onEvnet: 事件发生时, kms发给client
+        
+    ping:
+        为了保证client和kms之间的连通性,ping方法就用来做保活
+        client发送一个ping给kms,kms回一个pong消息,如果一定时间内响应没收到,那么连接就断开了
+            ping格式
+            {
+                "id": 1,
+                "method": "ping",
+                "params": {
+                    "interval": 240000      // 响应超时时长 毫秒 默认是24000ms = 40s
+                },
+                "jsonrpc": "2.0"
+            }
+            pong格式
+            {
+                "id": 1,
+                "result": {
+                    "value": "pong"
+                },
+                "jsonrpc": "2.0"
+            }
+        
+    create:
+        创建一个对象,管道或是媒体元素
+        create格式
+        {
+            "id": 2,
+            "method": "create",             // create方法
+            "params": {
+                "type": "MediaPipeline",    // type指明创建哪种对象
+                "constructorParams": {},    // 包含了对象创建所需要的信息
+                "properties": {}
+            },
+            "jsonrpc": "2.0"
+        }
+        媒体元素依附于管道, 先有管道后有媒体元素
+        创建管道的响应:
+        {
+            "id": 2,        // id要和请求时一致
+            "result": {
+                "value": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline", // 管道标识
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"  // 这个会话id, 在创建管道中的媒体元素时需要带上
+            },
+            "jsonrpc": "2.0"
+        }
+        响应包括了新对象的标识, 响应每次都会返回会话id
+        
+        下面是创建一个媒体元素
+        {
+            "id": 3,
+            "method": "create",
+            "params": {
+                "type": "WebRtcEndpoint",       // 创建WebRtcEndpoint媒体元素
+                "constructorParams": {
+                    "mediaPipeline": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline" // 在哪个管道上创建
+                },
+                "properties": {},
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466" // 哪个会话id
+            },
+            "jsonrpc": "2.0"
+        }
+        响应
+        {
+            "id": 3,
+            "result": {
+                "value": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline/087b7777-aab5-4787-816f-f0de19e5b1d9_kurento.WebRtcEndpoint", // 元素标识
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        
+    invoke:
+        {
+            "id": 5,
+            "method": "invoke",
+            "params": {
+                "object": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline/76dcb8d7-5655-445b-8cb7-cf5dc91643bc_kurento.PlayerEndpoint",
+                "operation": "connect",
+                "operationParams": {
+                    "sink": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline/087b7777-aab5-4787-816f-f0de19e5b1d9_kurento.WebRtcEndpoint"
+                },
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        参数中包含了对象标识object, 调用的方法,参数
+        响应:
+        {
+            "id": 5,
+            "result": {
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        
+    release:
+        删除对象,并释放和其相关的所有资源
+        {
+            "id": 36,
+            "method": "release",
+            "params": {
+                "object": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline",     // 要释放的对象标识
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        {
+            "id": 36,
+            "result": {
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        
+    subscribe:
+        订阅某个对象上的哪些事件
+        {
+            "id": 11,
+            "method": "subscribe",
+            "params": {
+                "type": "EndOfStream", // 订阅事件类型
+                "object": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline/76dcb8d7-5655-445b-8cb7-cf5dc91643bc_kurento.PlayerEndpoint", // 订阅对象
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        {
+            "id": 11,
+            "result": {
+                "value": "052061c1-0d87-4fbd-9cc9-66b57c3e1280",  // 订阅标识, 用于后面的取消订阅
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        
+    unsubscribe:
+        取消之前的订阅
+        {
+            "id": 38,
+            "method": "unsubscribe",
+            "params": {
+                "subscription": "052061c1-0d87-4fbd-9cc9-66b57c3e1280",  // 订阅标识
+                "object": "6ba9067f-cdcf-4ea6-a6ee-d74519585acd_kurento.MediaPipeline/76dcb8d7-5655-445b-8cb7-cf5dc91643bc_kurento.PlayerEndpoint", // 订阅对象
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+        {
+            "id": 38,
+            "result": {
+                "sessionId": "bd4d6227-0463-4d52-b1c3-c71f0be68466"
+            },
+            "jsonrpc": "2.0"
+        }
+    onevent:
+        当事件触发时,kms发送一个onevent消息给client
+        {
+          "jsonrpc":"2.0",
+          "method":"onEvent",
+          "params":{
+             "value":{
+                "data":{
+                   "source":"681f1bc8-2d13-4189-a82a-2e2b92248a21_kurento.MediaPipeline/e983997e-ac19-4f4b-9575-3709af8c01be_kurento.PlayerEndpoint", // 对象
+                   "tags":[],                // 每个元素都可以打上标签, 标签是key-value, 开发者可以用于其他目的
+                   "timestamp":"1441277150", // kms上的时间和日期
+                   "type":"EndOfStream"      // 事件类型
+                },
+                "object":"681f1bc8-2d13-4189-a82a-2e2b92248a21_kurento.MediaPipeline/e983997e-ac19-4f4b-9575-3709af8c01be_kurento.PlayerEndpoint",
+                "type":"EndOfStream"
+             }
+           }
+        }
+        并不需要响应
+        
+006 网络问题
+    kms消耗的资源非常高,她自己内部实现了一套垃圾回收机制garbage collector.
+    
+    媒体元素如果处于未连接状态, 超过4分钟, 就会启动响应的回收处理
+    
+    client和kms之间通过websocket连接,如果短暂的连接断开了,也是允许重连的
+    
+    重连同一个kms的消息:
+        {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "method": "connect", // 重连
+          "params": {
+            "sessionId":"4f5255d5-5695-4e1c-aa2b-722e82db5260"
+          }
+        }
+        {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "result": {
+            "sessionId":"4f5255d5-5695-4e1c-aa2b-722e82db5260" // 表示重连成功
+          }
+        }
+    如果重连到另一个kms,会失败:
+        {
+           "jsonrpc":"2.0",
+           "id": 7,
+           "error":{
+             "code":40007,
+             "message":"Invalid session",
+             "data":{
+                "type":"INVALID_SESSION"
+             }
+           }
+        }
+        
+    原始重连消息, 会创建一个新的会话id:
+    {
+       "jsonrpc":"2.0",
+       "id": 7,
+       "method":"connect"
+    }
+    
+007 kurento api
+    具体可以查看相应的idl 接口定义文件
+
+008 webrtc回环例子
+    [1] client发送消息给kms,创建管道
+        {
+          "id":1,
+          "method":"create",
+          "params":{
+             "type":"MediaPipeline",
+             "constructorParams":{},
+             "properties":{}
+          },
+          "jsonrpc":"2.0"
+        }
+    [2] kms返回管道信息和会话信息
+        {
+          "id":1,
+          "result":{
+             "value":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline",
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [3] client发送消息给kms, 创建一个WebRtcEndpoint媒体元素
+        {
+          "id":2,
+          "method":"create",
+          "params":{
+             "type":"WebRtcEndpoint",
+             "constructorParams":{
+                "mediaPipeline":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline"
+             },
+             "properties": {},
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [4] kms创建WebRtcEndpoint之后,讲媒体元素标识回给client
+        {
+          "id":2,
+          "result":{
+             "value":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline/e72a1ff5-e416-48ff-99ef-02f7fadabaf7_WebRtcEndpoint",
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [5] client调用WebRtcEndpoint的connect来实现回环
+        {
+          "id":3,
+          "method":"invoke",
+          "params":{
+             "object":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline/e72a1ff5-e416-48ff-99ef-02f7fadabaf7_WebRtcEndpoint",
+             "operation":"connect",
+             "operationParams":{
+                "sink":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline/e72a1ff5-e416-48ff-99ef-02f7fadabaf7_WebRtcEndpoint"
+                // sink表示从哪儿接收媒体数据
+             },
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [6] kms执行连接,并返回消息
+        {
+          "id":3,
+          "result":{
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [7] client调用WebRtcEndpoint对象的processOffer方法来进行webrtc中的sdp协商
+        {
+          "id":4,
+          "method":"invoke",
+          "params":{
+             "object":"c4a84b47-1acd-4930-9f6d-008c10782dfe_MediaPipeline/e72a1ff5-e416-48ff-99ef-02f7fadabaf7_WebRtcEndpoint",
+             "operation":"processOffer",
+             "operationParams":{
+                "offer":"SDP"
+             },
+             "sessionId":"ba4be2a1-2b09-444e-a368-f81825a6168c"
+          },
+          "jsonrpc":"2.0"
+        }
+    [8] kms执行sdp协商,并返回协商结果
+        {
+          "id":4,
+          "result":{
+             "value":"SDP"
+          },
+          "jsonrpc":"2.0"
+        }
+        
+009 kurento模块创建
+    kurento client api 现在只有java和js的, client可以通过kurento module creator创建
+    通过kurento module creator也可以创建其他语言的client.
+    
+    ubuntu的安装: sudo apt-get install kurento-module-cretor
+    
+    这个工具的目标是产生client代码,也会产生kms需要的胶水代码
+    利用的是freemarker充当模板引擎,创建client的代码是:
+    kurento-module-creator -c <CODEGEN_DIR> -r <ROM_FILE> -r <TEMPLATES_DIR>
+    
+    CODEGEN_DIR: 生成目录
+    ROM_FILE: kmd文件(多文件用空格分开)或是文件目录
+    TEMPLATES_DIR: 模板文件目录
+    

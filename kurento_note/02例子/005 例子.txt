@@ -1,0 +1,154 @@
+001 大致说明
+    kurento体系有3种途径来构建webrtc/多媒体应用：
+        java：基于 Spring Boot框架的应用程序，控制客户端交互的逻辑，控制kms
+        浏览器中的js：在浏览器中直接与kms相连
+        node.js：和java类似
+    下面的图对应上面三种方式：
+        终端 - java服务程序 - kms
+        js(浏览器终端) - kms
+        终端 - node.js - kms
+        java/node.js方式在中间可以交互逻辑，通俗理解是：房间服务
+        浏览器js的方式，没有房间的概念，这堆东西全放在js里面
+        
+002 helloworld
+    功能：实现webrtc的loopback
+    说明：将媒体流丢到kms，再从kms拉回来回显
+    环境：node.js和bower需要安装
+    
+    node.js和bower的安装
+        curl -sL https://deb.nodesource.com/setup_4.x | sudo bash -
+        sudo apt-get install -y nodejs
+        sudo npm install -g bower
+        node.js是js开发服务程序的运行时
+        bower是web的包管理工具
+        
+    同源策略  Same-origin policy
+        js运行的一个安全策略，需要安装sudo npm install http-server -g
+        
+    下载demo的源码
+        git clone https://github.com/Kurento/kurento-tutorial-js.git
+        cd kurento-tutorial-js/kurento-hello-world
+        git checkout 6.6.1
+        bower install
+        http-server -p 8443 -S -C keys/server.crt -K keys/server.key
+        
+    上面最后一个命令就是起一个https服务
+        报了错，因为kms没有配置wss
+        安装证书生成器
+            sudo apt-get install gnutls-bin 安装证书生成器
+        生成一个证书： 
+            certtool --generate-privkey --outfile defaultCertificate.pem
+            echo 'organization = kurento.org' > certtool.tmpl
+            certtool --generate-self-signed --load-privkey defaultCertificate.pem --template certtool.tmpl >> defaultCertificate.pem
+            
+    好吧，刚才那几个证书用在https中，自签证书又需要提前导入信任列表，到目前还没找到好的测试步骤，所以使用http
+    
+    http的方式：不需要修改kms的配置文件，http-server -p 8443 起http服务，这样就不需要https了
+    在火狐上测试通过
+    
+003 WebRTC magic mirror
+    第二个例子
+    功能：实现webrtc的loopback，在这个基础上进行人脸识别，加个帽子
+    说明：将媒体流丢到kms，加上帽子，再从kms拉回来回显
+    环境：如上
+    
+    bower install
+    http-server -p 8443
+    当然，还需要修改js/index.js中的wss和https  改为不是用https的就ok了  
+    ws的端口使用的是默认的8888
+    在火狐上测试通过
+    
+004 WebRTC one-to-many broadcast
+    第三个例子
+    功能：广播，一个终端推webrtc流，其他终端看
+    说明：将媒体流丢到kms，其他终端从kms拉回来显示
+    环境：因为涉及到逻辑，所以不能只使用js来实现，上面的环境也是需要的 bower和nodejs
+    
+    下载demo的源码
+        git clone https://github.com/Kurento/kurento-tutorial-node.git
+        cd kurento-tutorial-node/kurento-one2many-call
+        git checkout 6.6.1
+        npm install
+        npm start
+    
+    期间如果安装依赖失败，使用下面命令清除缓存
+    rm -r node_modules
+    npm cache clean
+    
+    http的改造
+        因为想用http来访问，需要修改以下几点：
+        vim server.js :
+            //var https = require('https');
+            var https = require('http'); --使用http
+   
+    
+            //as_uri: 'https://localhost:8443/',
+            as_uri: 'http://172.168.10.101:8443/',  --指明ip，让其他机器也可以访问
+
+            //var server = https.createServer(options, app).listen(port, function() {
+            var server = https.createServer(app).listen(port, function() {  --http不需要安全证书，
+
+        vim static/js/index.js
+            //var ws = new WebSocket('wss://' + location.host + '/one2many');
+            var ws = new WebSocket('ws://' + location.host + '/one2many');
+    在火狐上测试通过
+    
+005 One to one video call
+    第四个例子
+    功能：一对一聊天
+    说明：a将音视频丢给b；b将音视频丢给a
+    环境：如上，nodejs api
+    
+    npm install
+    npm start
+    
+    修改如下：
+        和上面的例子一样
+        
+    
+006 Hello World with Data Channels
+    第五个例子
+    功能：回显消息
+    说明：发送文字消息，再从kms回显
+    环境：如例子001
+    
+    bower install
+    http-server -p 8443
+    
+    改成http，代码做了如下调整：
+    //ws_uri: 'wss://' + location.hostname + ':8433/kurento',
+    ws_uri: 'ws://' + location.hostname + ':8888/kurento',
+    
+    在火狐上测试通过，可以进行文字聊天
+    
+007 Recorder
+    第六个例子，js api，基于hello world进行录制和播放
+    功能：录制和回放
+    说明：录制 + 回放
+    环境：如例子001
+    
+    bower install
+    http-server -p 8443
+    
+    改成http，代码做了如下调整：
+    //ws_uri: 'wss://' + location.hostname + ':8433/kurento',
+    ws_uri: 'ws://' + location.hostname + ':8888/kurento',
+    
+    这个例子使用js的kurento-hello-world-recorder-generator或是kurento-recorder 都是一样的效果
+
+008 Loopback stats
+    第七个例子
+    功能：收集分析数据
+    说明：收集hello world的统计数据
+    环境：如例子001
+    
+    bower install
+    http-server -p 8443
+    
+    改成http，代码做了如下调整：
+    //ws_uri: 'wss://' + location.hostname + ':8433/kurento',
+    ws_uri: 'ws://' + location.hostname + ':8888/kurento',
+    
+    运行后可以看到很多实时统计数据
+    
+    

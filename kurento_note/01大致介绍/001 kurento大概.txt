@@ -1,0 +1,35 @@
+1 什么是kurento
+	kurento和licode一样，是基于webrtc的视频群聊系统
+	kurento包含了一个webrtc的媒体服务，和一系列客户端api
+        这些api在web和智能手机提供了处理视频的功能
+
+2 提供了哪些功能
+    组聊(房间的概念)，传输，录制 - 这是webrtc支持的
+    混流，音视频的广播和路由
+    媒体流的高级处理：包括计算机视觉，video indexing(不清楚)，AR(增强现实)，音频分析
+    
+    也可以轻松集成第三方的媒体处理算法：
+        声音识别，sentiment analysis(情绪分析？不清楚)，人脸识别
+
+3 kurento的核心
+    核心就是Kurento Media Server 简称kms
+    kms处理媒体的传输，处理，加载，录制
+    kms是利用底层技术(gstreamer)来优化资源消耗的
+
+    提供了下列特征：
+        协议支持：http/rtp/webrtc
+        组聊(类似mcu和sfu功能)，支持流的混流/路由/分发
+            mcu：Multi-Conference Unit 多会议单元
+            sfu： require selective forwarding 按需转发
+        支持filter，可以随意插入计算机视觉，ar等
+        媒体存储，保存为webm/mp4，利用gstreamer播放任何格式的媒体
+        自由转码，基于gstreamer，编码随意转，包括vp系列和h26x，amr opus speex g.711等
+        
+4 客户端
+    提供了一个kurento client库，可用在java和js语言中
+    这个库用于控制kms
+    如果要用其他语言，也是ok的，基于websocket/json-rpc
+    
+5 open source
+    开源 开源 开源
+

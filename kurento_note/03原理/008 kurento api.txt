@@ -1,0 +1,90 @@
+001 说明
+    kurento给高级语言暴露了一些api,通过这些api就可以控制kms
+    目前官网给kurento client提供了两种版本的api:js和java
+    也可以用其他语言,只要遵循kurento protocol,使用websocket和json-rpc即可
+    
+002 媒体元素和媒体管道
+    media elements and media pipelines
+    
+    media elements:
+        一个媒体元素就表示一种流处理能力,一个功能黑盒子,不用关心内部细节,可以直接用的
+        媒体元素有两个基本功能:接收其他元素传过来的媒体流；给其他媒体元素发送媒体流
+        source 和 sink
+        基于不同的功能,媒体元素分以下几类: 
+            input endpoints:接收媒体流,并丢给管道
+                file input endpoints:从文件读媒体流
+                network input endpoints:从网络读取媒体流
+                capture input endpoints:从设备读取媒体流 (摄像头、麦克风)
+            filters:转换或是分析媒体流
+                mix 混流
+                mux 多路复用
+                analyz 分析
+                augment 媒体增强
+            Hubs:管理管道中的多路媒体流
+                 一个hub有多个hub端口,一个端口连一个媒体元素
+                 根据不同的hub类型,控制多路流的方式也各不相同
+                 最简单的是混合hub:把多路视频流合成一个网格视频流
+            output endpoints:从管道中取出媒体流
+                可以丢到文件/网络/屏幕
+                
+    media pipeline
+        管道
+        一个媒体元素链,和dshow上的graph概念是一样的
+        一个媒体元素source把数据丢给下一个媒体元素sink
+        媒体元素有两个管脚,一个叫source 专门丢数据给其他元素; 一个叫sink 专门接收其他元素的数据
+        
+    kurento api是面向对象的api ,有些类是可以被实例化的
+    
+003 认识endpoints
+    WebRtcEndPoint:
+        是一个input endpoint也是一个output endpoints
+        提供了一个功能:和web之前对媒体流进行RTC (实时交互)
+        这个endpoint实现了webrtc的技术,用于和浏览器交互
+        
+    RtpEndPoint:
+        是一个input endpoint也是一个output endpoints
+        实现一个到远端网络的数据传输,通过rtp协议
+        协商是通过sdp,收发数据是通过rtp
+        
+    HttpPostEndpoint:
+        是一个input endpoint
+        通过httppost来读媒体流, 类似于http的上传功能
+        
+    PlayerEndpoint:
+        是一个input endpoint
+        通过文件系统/http/rtsp获取内容,然后丢到管道中
+        
+    RecorderEndpoint:
+        是一个output endpoint
+        在不丢失数据的情况下保存媒体数据
+        只有一个meida sink管脚
+        
+    前3个是基于会话的,后两个是基于uri的
+    
+004 认识filters
+    一个filter表示对元素的一种处理
+    
+    ZBarFilter:
+        可以检测流中的二维码和条形码
+        当码被找到时,filter会调用一个"CodeFoundEvent"
+        如果在client添加的监听,就可以做相应处理了
+        
+    FaceOverlayFilter:
+        人脸检测,之后用指定的图片代替
+        
+    GStreamerFilter:
+        可以在管道里使用GStreamer filter
+        
+005 hubs
+    在管道里负责管理多路媒体流的流向
+    
+    Composite:
+        混音,视频混成一个网格状
+        
+    DispatcherOneToMany:
+        广播
+        
+    Dispatcher:
+         allows routing between arbitrary input-output HubPort pairs
+         
+         

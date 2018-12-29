@@ -1,0 +1,27 @@
+001 说明
+    kms的配置文件在/etc/kurento/kurento.conf.json
+    
+    kms6之后,每个单独的模块都有自己的配置文件
+        路径是/etc/kurento/kurento/modules/kurento/
+        有媒体元素的一般参数
+        有Sdpendpoints的音视频参数
+        有WebRtcEndpoint的ice参数
+        有HttpEndpoint的参数
+
+002 校验kms的安装
+    查进程: ps -ef | grep kurento-media-server
+    查websocket的端口: sudo netstat -putan | grep kurento
+    查日志 /var/log/kurento-media-server/
+        media-server_<timestamp>.<log_number>.<kms_pid>.log
+        当前日志
+        
+        media-server_error.log
+        三方错误日志
+        
+        logs
+        kurento轮询日志
+        
+        kms的日志结构
+        [timestamp] [pid] [memory] [level] [component] [filename:loc] [method] [message]
+        时间       进程号 内存地址 日志级别 组件名      源码名和行   调用方法   消息
+        

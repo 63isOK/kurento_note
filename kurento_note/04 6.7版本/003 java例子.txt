@@ -1,0 +1,72 @@
+001 hello world
+    基本的会话管理
+    完整的打印调试信息
+    
+002 mirror
+    相比于hello world:
+    简化了打印信息, 
+    优化了部分代码结构:websocket和ice候选处理
+    功能上和hello world的差别是,管道里加了一个FaceOverlayFilter
+    
+003 rtp receiver
+    通过webrtcendpoint和rtpendpoint来接收rtp流
+    结构和hello world差不多, 管道里加了一个RtpEndpoint
+    
+004 一对多
+    结构类似于mirror
+    只实现了一个主持人多个观看者   类似于一个房间(多房间功能并未添加)
+    主持人只推流, 观看者只收流
+    主持人点击停止,会让其他都停止收流
+    这是一个典型的直播场景
+    
+    不足: 主持人控制整个会话, 例子未扩展到多房间
+    
+005 一对一
+    做了一些扩展 管道中有两个WebRtcEndpoint,各自连接一个web app端
+    两个媒体元素之间也是相连的
+    
+006 多对多
+    加了房间的概念, 发一个流 收多个流
+    在js端添加了控制WebRtcEndpoint的例子
+        控制音视频属性,包括分辨率和帧率
+        
+007 元数据 metadate
+    人脸检测 + 人脸替换
+    在hello world 的基础上添加了两个媒体元素
+    
+008 player
+    读一个数据源的音视频数据,播放出来,并加以控制
+    eg: 开始播放  暂停  调到指定位置
+    多加了一个PlayerEndpoint的媒体元素
+    这类媒体元素支持本地文件/rtsp流(使支持ip camera成为可能)/http文件流
+    
+009 send data channel
+    读一个数据源的音视频数据,播放出来
+    跟上面plyaer的例子不同的地方:
+        管道中多加了一个kmsSendData的媒体元素
+    在web app端创建双工对象时,配置了使用datachannel数据通道
+        并配置了通道号和接收消息之后的回调
+    kmsSendData就是识别视频流中的二维码,并将二维码信息通过数据通道丢回来
+    
+010 show data channel
+    通过通道发送文字给kms,并在回显的视频中显示文字
+    管道中添加的是KmsShowData媒体元素
+    且通道不用是监听消息到达事件,而是通道的创建和关闭事件
+    
+011 hello world record
+    在hello world 的基础上添加了录制和播放录制文件的功能
+    在web app端除了开始 结束 还有多了一个播放
+    开始结束  就是沿用hello world的回放
+    只是在服务端多加了一个录制的媒体元素
+    当web app点击播放时, 服务端会新建一个管道 用PlayerEndpoint来播放
+    
+    这个例子显示录制过程
+    
+012 repository
+    媒体仓库   后面可以研究一下  
+    
+013 分析
+
+    
+    
+    

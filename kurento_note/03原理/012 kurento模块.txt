@@ -1,0 +1,22 @@
+001 模块说明
+    kurento是一个插件式框架,每一个插件都称为一个模块, 可分3类:
+    
+    主模块:
+        组成kms的模块
+        kms-core: kms的核心
+        kms-elements: 实现了kms中的媒体元素
+        kms-filters: 实现了kms中的filters (FaceOverlayFilter, ZBarFilter, GStreamerFilter)
+        
+    内置模块:
+        kurento工作组开发的额外模块, 用来增强kms的功能
+        kms-pointerdetector: 检测视频中指针的filter,根据延时跟踪.  鼠标检测
+            sudo apt-get install kms-pointerdetecctor-6.0
+        kms-chroma: 使顶层一个区域的颜色区透明,在后面放个图片    AR
+            sudo apt-get install kms-chroma-6.0
+        kms-crowddetector: 视频里的people agglomeration检测  人群检测
+            sudo apt-get install kms-crowddetector-6.0
+        kms-platedetector: 车牌检测  并不是很准确
+            sudo apt-get install kms-plateddetector-6.0
+            
+    自定义模块:
+        扩展kms,自己提供的新能力,

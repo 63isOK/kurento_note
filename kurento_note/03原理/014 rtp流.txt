@@ -1,0 +1,44 @@
+001 rtp流
+    除了webrtc流, kms需要管理其他的rtp流
+    kms在出来rtp连接时,有两件事要做:
+        kms实现的自动拥塞控制算法
+        nat穿透能力
+        
+002 拥塞控制
+    在kurento6.7之前,只有webrtc流有拥塞控制,
+    现在kurento也实现了自己的拥塞控制,
+    通俗理解就是发送端发送高码率流时,发现网络条件不允许,就会自动切换到低码率流
+    
+003 自动发现端口 nat穿透
+    kms现在可以自动推导远端的公网ip和端口,某些特殊的场合下并不需要使用ice
+    这些灵感来至于rfc4145,基于sdp的面向连接的媒体传输
+    
+    工作流程:
+        [1] 在nat后面,发送sdp offer的称为活跃端, 接收sdp的称为被动接收端
+            活跃端发送一个sdp消息,消息里的ip和端口是活跃端的内网ip和端口,不是公网ip端口
+            被动端拿到内网ip是没法用的, 所以sdp offer模型中的端口指定为9 而不是内网其他端口
+            sdp offer包含了一个媒体级的属性"a=direction:active"
+            这样被动端就知道使用了"Connection-Oriented Media Transport "
+            被动端在sdp answer中会写到"a=direction:passive"
+        [2] 被动端接收sdp offer,响应sdp answer,其中包括了被动端的公网ip和端口
+            通过这个ip和端口,被动端会监听到来的包
+            除此之外,接收到的sdp offer中的ip和端口都会被忽略掉
+            被动端会进入到一个等待阶段,知道活跃端发送包过来
+        [3] 通过sdp answer中的ip和端口,活跃端向这个地址发送rtp/rtcp包
+            被动端接收到第一个包时,会分析提取出活跃端的公网ip和端口
+            此时他们就知道对方的公网ip和端口,就可以进行rtp/rtcp包了
+
+    这套机制的限制如下:
+        [1] 活跃端在nat后面,被动端有公网ip和端口
+        [2] 活跃端可以通过发送rtp/rtcp的端口接收rtp/rtcp包
+            换句话说就是活跃端必须兼容"对称性rtp/rtcp"
+        [3] 活跃端要在被动端发送数据之前发送一些rtp/rtcp包
+            换句话说就是不能只是被动端发送数据
+            
+    如何启动"Connection-Oriented Media Transport"
+        [1] sdp offer必须从活跃端发给被动端
+        [2] sdp offer中的ip会被忽略,所以设置成什么都无所谓,0.0.0.0也可以
+        [3] sdp offer中的端口是9(这个端口是废弃端口,其他程序都不会用到)
+        [4] sdp offer中必须包含"a=direction:active" 这个是自动推导端口机制的启动标志
+        [5] 被动端在sdp answer中设置"a=direction:passive"表示自己会进行端口自动推导
+            如果被动端不这么写,那么活跃端就会认为被动端不支持端口自动推导功能

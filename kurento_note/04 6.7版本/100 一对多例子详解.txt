@@ -1,0 +1,58 @@
+服务端:
+001 会接收web app丢过来的4类消息
+    presenter: 主持人
+    viewer:游客
+    onIceCandidate:ice候选
+    stop:结束会话
+    
+002 处理presenter消息
+    如果已经有人当主持人了,就返回rejected表示拒绝
+    没有主持人,创建一个主持人会话
+    创建管道/媒体元素
+    添加ice候选事件监听
+    将sdp offer丢给kms,从kms得到sdp answer
+    再用accepted消息,吧sdp answer丢给web app
+    通知kms开始收集ice候选
+    
+003 处理viewer消息
+    如果主持人会话未建立或者管道中的WebRtcEndpoint未创建就拒绝
+    如果已经加入观看者会话了,那么也是拒绝
+    其他流程如下:
+        更新维护的观看者会话列表
+        添加一个WebRtcEndpoint媒体元素/添加ice候选发现事件监听
+        把新创建的媒体元素和主持人的WebRtcEndpoint相连
+        新创建的媒体元素处理观看者的sdp offer,并将sdp answer逐级返回
+        和sdp answer一起返回的还有acccepted消息
+        通知kms中的新的媒体元素开始收集ice候选
+        
+004 处理stop消息
+    如果是主持人发的消息:
+        给所有观看者发送stopCommunication消息
+        释放管道资源
+    如果是某一观看者发的消息:
+        更新观看者会话列表
+
+        
+        
+web app端的流程:
+001 说明
+    页面有3个按钮: 主持人 观看者 停止
+    
+002 主持人按钮
+    点击主持人按钮,会创建一个kurentoUtils.WebRtcPeer.WebRtcPeerSendonly
+    这是一个只发送的单工对象
+    产生sdp offer,并发送给服务端
+    
+003 观看者按钮
+    点击观看者按钮,会创建一个kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly
+    这是一个只收的单工对象
+    产生sdp offer,并发送给服务端
+    
+002 消息
+    presenterResponse: 
+        如果响应的是acccepted,那么参数就是sdp answer
+        调用工具包中的webRtcPeer执行processAnswer
+    viewerResponse:
+        如果响应的是acccepted,那么参数就是sdp answer
+        调用工具包中的webRtcPeer执行processAnswer
+    
