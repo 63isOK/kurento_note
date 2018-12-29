@@ -1,0 +1,62 @@
+2018-05 version:6.7.2
+新增:
+    WebRtcEndpoint可以产生sdp offer
+修改：
+    不使用remb网络拥塞算法时，rtcp包间隔时长改为默认值：5s
+修复：
+    sdp offer中包含a=setup:actpass,firefox没有这个会报错
+
+2018-10 version:6.8.1
+新增：
+    捕获glib的日志信息
+    hub和hubport支持data流，也就是说DataChannels流可以走hub
+    Composite 可以支持处理多路DataChannels流
+    GstreamerFilter可以在运行时设置内部元素的属性
+修改：
+    日志时间戳采用iso8601格式
+    在配置文件kurento.conf.json中新增disableRequestCache，用于调试
+    资源不足时，打印的日志会更清晰明了
+    libnice版本从0.1.13升级到0.1.15
+修复：
+    服务启动日志会追加到错误日志文件
+    /var/log/kurento-media-server/errors.log
+
+2018-12 version:6.9.0
+    这个版本的主题是稳定性和性能的提升
+    首先是维持了8个多月的崩溃被修复了
+    其次kurento也为kms提供了压力测试的基础工具
+    性能的提升更多的在于移除了一个全局锁(libnice)
+
+    在webrtc实现中选择最新的benchmark/comparison，
+    这样的好处是让kms支持的更多的流
+    基于这点，这个版本才加了压力测试的基础工具
+
+    目前kms最多支持133路流，即19会议，每个会议7个人
+    由于使用的sfu，意味着可以有133路输入流 798路输出流
+    测试机器是8核 16G内存 亚马逊aws云服务
+    测试视频大小是540*360，chrome浏览器，未转码
+    cpu呈线性增加，内存一致维持一个稳定的25%(4G)
+
+    上面的测试只是一个具体环境的测试，实际场景需要重测
+
+    下面是一些修复和修改
+新增：
+    媒体元素-player endpoint，现在端口可以配置了
+    kms-omni-build 编译 - bin目录下新增一些脚本用于内存泄露和访问错误
+    文档更新 - 新增测试章节
+修改：
+    kms-core - 接受rtp流的端口变成可配置
+    kms - 以前启动会将默认配置打印出来，现在丢到errors.log中
+    kms - 现在可以配置打开文件描述符的限制
+    kms - 错误日志会丢到errors.log
+修复：
+    kms - 有时候日志文件因为权限问题无法创建，会导致守护进程崩溃
+          现在如果日志文件无法创建，会在标准输出中打印相关信息
+
+
+题外话：
+    webrtc是p2p，kurento是p2s (peer to server)
+    目前webrtc网络机构有以下几种：
+        p2p mesh
+        mcu (multi-point control unit) 多点控制单元
+        sfu (selective forwarding unit) 选择转发单元
