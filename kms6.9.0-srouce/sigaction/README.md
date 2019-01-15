@@ -87,7 +87,24 @@ kernel遇到信号，有3种处理方式：
 
 有些信号的默认处理就是结束+产生dump文件
 
+dump文件在以下情况下并不会产生：
+- 程序的owner并不是当前用户
+- 当前用户并不在程序的用户组中
+- 当前用户并没有权限在程序运行目录进行写操作
+- core已经存在，且当前用户并没有core文件的写权限
+- core文件太大，超出限制
 
+具体的signal信息，可以查看*apue 3rd p317*  
+
+## siganl()
+```c++
+    #include <signal.h>
+    void (*signal(int signo, void (*fun)(int))(int);
+```
+    先来理解一下这个写法：
+    void func(int);  // 函数
+    void (*p)(int);  // 函数指针
+    void (*a(int))(int); // 
 
 
 
