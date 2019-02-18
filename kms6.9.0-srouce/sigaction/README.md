@@ -104,7 +104,24 @@ dump文件在以下情况下并不会产生：
     先来理解一下这个写法：
     void func(int);  // 函数
     void (*p)(int);  // 函数指针
-    void (*a(int))(int); // 
+    void (*a(int))(int); // 函数a的参数是int，返回值是一个函数指针void(*p)(int)
+
+    signal函数，第一个参数是信号的号，参数而是一个函数指针，返回值也是
+
+## sigaction
+```c++
+  #include <signal.h>
+  int sigaction(int signo, const struct sigaction *restrict act,
+      struct sigaction *restrict oact);
+      
+  // Returns: 0 if OK, −1 on error
+```
+这个函数的用处是检查或修改信号的处理方式，
+代码中将 SIGINT SIGTERM SIGPIPE的处理方式修改了一下：
+
+如果是遇到sigint sigterm 将loop循环退出，如果是sigpipe就忽略
+
+loop循环后面再说
 
 
 
