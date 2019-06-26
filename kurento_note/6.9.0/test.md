@@ -13,7 +13,7 @@
 说白了就是模拟用户，自动化的
 
 
-  功能 测试kurento提供的功能:
+  功能性 测试kurento提供的功能:
   kurento需要测试功能主要包括：
 * webrtc，kurento的核心能力，除此之外ice和数据通道也是重点功能
 * recorder，录制
