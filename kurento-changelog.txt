@@ -53,10 +53,25 @@
     kms - 有时候日志文件因为权限问题无法创建，会导致守护进程崩溃
           现在如果日志文件无法创建，会在标准输出中打印相关信息
 
+2019-04 version:6.10.0
+    这个版本的安装步骤有些变动
+
+    下面是一些大的改动:
+新增:
+    支持ubuntu18.08, bionic, 注意是部分移植
+    支持chrome74, chrome74中的dtls协议升级到1.2了
+    取消对ubuntu14.04的支持,少了历史包袱,对整个kurento来说都简单了很多
+    减少了很多不必要的三方库fork,因为少了ubuntu14.04这个历史包袱
+修改:
+    转码日志信息更加简明
+    录制支持mkv格式了
+    支持sanitizers和valgrind,只对开发有用
+修复:
+    json格式的配置,可以使用注释了.引入boost c++库
 
 题外话：
     webrtc是p2p，kurento是p2s (peer to server)
-    目前webrtc网络机构有以下几种：
+    目前webrtc网络结构有以下几种：
         p2p mesh
         mcu (multi-point control unit) 多点控制单元
         sfu (selective forwarding unit) 选择转发单元
