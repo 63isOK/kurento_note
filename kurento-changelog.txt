@@ -117,3 +117,33 @@
 
 题外话：
     本次解决除了新增少部分新特性,大部分工作在于已知问题的修复
+	
+2019-12 version:6.13.0
+	这个版本新增了一些api来查询kms所在服务器的资源信息
+
+    下面是一些大的改动:
+新增:
+    在WebRtcEndpoint配置和客户端api中,新增了externalAddress的配置
+		这是一个外网ip,简化了kms启动时的查找外网ip的逻辑
+		省时是第一点,第二点是配置中去掉了对ice服务的依赖配置
+	在WebRtcEndpoint配置和客户端api中,新增了networkInterfaces的配置
+		这是指定使用哪个网卡,获取本地候选时会节省一些时间
+		其次也是确保kms使用正确网卡的一个机制
+		(libnice用于处理ice候选,上面两点对于libnice是一个很有力的补充)
+	在BaseRtpEndpoint配置和客户端api中,新增了mtu的配置
+		在rtp传输时可指定mtu
+	sdp中支持 a=rtcp:{port}格式,也就是说可以指定rtcp端口
+		以前rtp/rtcp使用连续的端口,现在可以为rtcp指定端口
+	client api中添加了getCpuCount/getUserdCpu
+		这都是获取kms服务器资源信息的接口
+修改:
+    js工具包中,为了支持RTCPeerConnection.addTransceiver(),去掉了一些遗弃属性
+	mDNS候选未解析时,不再报错或警告
+	maxVideoRecvBandwidth从默认的0改为无限制(这块的控制丢给remb)
+	getUserMemory返回rss(物理内存)而不是以前的vsz(虚拟内存),单位MB
+	BaseRtpEndpoint/WebRtcEndpoint的带宽控制{min,max}进行了重写
+修复:
+    nodejs示例修复websocket模块
+
+题外话：
+    本次在ice候选处理和服务器资源返回方面做了很多工作
