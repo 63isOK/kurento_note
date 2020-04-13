@@ -94,3 +94,26 @@
 
 题外话：
     本次解决有两个部分:gs相关的内存泄漏;自身迁移到ubuntu18的bug修复
+	
+2019-10 version:6.12.0
+
+    下面是一些大的改动:
+新增:
+    支持trickle ice的null ice候选(因为火狐现在也支持了,而谷歌早就支持了)
+	支持chrome的mDNS解析
+	新增一个kurento-dbg的包,里面放的是符号文件,可用于崩溃调试
+	支持与clang/undefinedsanitizer兼容的构建脚本
+修改:
+    lisrtp更新到1.6.0
+	kurento运行的uid从>=100改为>=1000(用户登录界面就不会再显示kurento)
+	kruento目录从/var/kurento改为/var/lib/kurento
+	c++部分支持c++14特性
+修复:
+    修复MediaFlowInStateChange崩溃
+	修复PlayerEndpoint的泄漏和崩溃
+	修复gstreamer在dtls连接时的内存泄漏
+	修复kurento模块生产器在自动生产时导致的内存泄漏
+	修复kms-core在解析sdp消息时可能存在的"未捕获异常"
+
+题外话：
+    本次解决除了新增少部分新特性,大部分工作在于已知问题的修复
