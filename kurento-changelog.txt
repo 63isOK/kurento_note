@@ -75,3 +75,22 @@
         p2p mesh
         mcu (multi-point control unit) 多点控制单元
         sfu (selective forwarding unit) 选择转发单元
+
+2019-07 version:6.11.0
+    这个版本主要是针对ubuntu18.08, bionic,
+	大多数工作集中在18.08 gstream1.14相关部分
+
+    下面是一些大的改动:
+新增:
+    sctp的新sdp语法支持(firefox已经支持了,后续chrome也会支持)
+	向后兼容也是要做到的
+修改:
+    示例中的node.js版本升级到10.x LTS(主要是现在出现了依赖问题)
+	java客户端和示例采用的spring boot和java升级到spring boot2/java8
+修复:
+    修复gstreamer插件在dtls连接建立时的内存泄漏(这个是有gs团队上游修复的)
+	本次内存泄漏的修复并没有完全解决内存泄漏,不过情况改善了10倍以上
+	示例和一些js包的修复
+
+题外话：
+    本次解决有两个部分:gs相关的内存泄漏;自身迁移到ubuntu18的bug修复
